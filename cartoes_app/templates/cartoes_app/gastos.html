@@ -1,0 +1,289 @@
+{% extends 'cartoes_app/base.html' %}
+{% load static %}
+{% load humanize %}
+{% load filetypes %}
+{% block title %}Gastos{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 d-flex justify-content-between align-items-center mb-3">
+    {% if not request.user.is_staff %}
+      <h4 class="mb-0 d-flex align-items-center gap-2">
+        👤 {{ request.user.username }}
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Mostrar cartões</a>
+      </h4>
+    {% else %}
+      <h2 class="mb-0">Gastos</h2>
+      <div class="d-flex gap-2">
+        <a href="{% url 'usuarios' %}" class="btn btn-outline-secondary btn-sm">Usuários</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Dashboard</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Coluna direita: painel do usuário, formulário e lista -->
+  <div class="{% if usuarios %}col-md-8{% else %}col-lg-10 mx-auto{% endif %}">
+    <!-- Painel do usuário -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+          {% if usuarios and user_alvo %}
+            <input type="hidden" name="usuario" value="{{ user_alvo.id }}">
+          {% endif %}
+
+          <div class="col">
+            <h5 class="mb-0">
+              {% if user_alvo %}
+                Cartões de <strong>{{ user_alvo.username }}</strong>
+              {% else %}
+                Selecione um usuário
+              {% endif %}
+            </h5>
+          </div>
+
+          <div class="col-auto">
+            <label for="periodo" class="form-label mb-0 small">Período</label>
+            <select id="periodo" name="periodo" class="form-select form-select-sm" onchange="this.form.submit()">
+              <option value="mes_atual" {% if periodo == 'mes_atual' %}selected{% endif %}>Mês atual</option>
+              <option value="ult_30" {% if periodo == 'ult_30' %}selected{% endif %}>Últimos 30 dias</option>
+              <option value="todos" {% if periodo == 'todos' %}selected{% endif %}>Todos</option>
+            </select>
+          </div>
+
+          {% if periodo_inicio and periodo_fim %}
+          <div class="col-12">
+            <span class="text-muted small">De {{ periodo_inicio }} a {{ periodo_fim }}</span>
+          </div>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
+    {% if user_alvo %}
+      <!-- Resumo por cartão (controle de limite) -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="mb-2">Meus cartões — gastos no período</h6>
+          {% if cartoes_resumo %}
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Cartão</th>
+                    <th class="text-end">Gasto (R$)</th>
+                    <th class="text-end">Limite (R$)</th>
+                    <th class="text-end">Saldo restante (R$)</th>
+                    <th class="text-end">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in cartoes_resumo %}
+                    <tr class="{% if c.estourado %}table-danger{% endif %}">
+                      <td>
+                        {{ c.nome }}
+                        {% if c.numero_mascarado %}<div class="small text-muted">{{ c.numero_mascarado }}</div>{% endif %}
+                      </td>
+                      <td class="text-end">{{ c.gasto_total|floatformat:2|intcomma }}</td>
+                      <td class="text-end">{{ c.limite|floatformat:2|intcomma }}</td>
+                      <td class="text-end">
+                        {% if c.saldo_restante < 0 %}
+                          <span class="text-danger">{{ c.saldo_restante|floatformat:2|intcomma }}</span>
+                        {% elif c.saldo_restante == 0 %}
+                          <span class="text-warning">{{ c.saldo_restante|floatformat:2|intcomma }}</span>
+                        {% else %}
+                          <span class="text-success">{{ c.saldo_restante|floatformat:2|intcomma }}</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-end">
+                        {% if c.estourado %}
+                          <span class="badge bg-danger">Acima do limite</span>
+                        {% else %}
+                          <span class="badge bg-success">Ok</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th>Total</th>
+                    <th class="text-end">{{ total_gasto_periodo|floatformat:2|intcomma }}</th>
+                    <th class="text-end">{{ limite_total_cartoes|floatformat:2|intcomma }}</th>
+                    <th class="text-end">
+                      {% if saldo_total_negativo %}
+                        <span class="text-danger">{{ saldo_total|floatformat:2|intcomma }}</span>
+                      {% elif saldo_total_zero %}
+                        <span class="text-warning">{{ saldo_total|floatformat:2|intcomma }}</span>
+                      {% else %}
+                        <span class="text-success">{{ saldo_total|floatformat:2|intcomma }}</span>
+                      {% endif %}
+                    </th>
+                    <th></th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info mb-0">Nenhum cartão cadastrado para este usuário.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Formulário de gasto (só aparece se houver cartões) -->
+      {% if cartoes %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="mb-3">Registrar novo gasto</h6>
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Cartão</label>
+                {{ form.cartao }}
+                {% if form.cartao.errors %}<div class="text-danger small">{{ form.cartao.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Descrição</label>
+                {{ form.descricao }}
+                {% if form.descricao.errors %}<div class="text-danger small">{{ form.descricao.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Valor (R$)</label>
+                {{ form.valor }}
+                {% if form.valor.errors %}<div class="text-danger small">{{ form.valor.errors }}</div>{% endif %}
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Data</label>
+                {{ form.data }}
+                {% if form.data.errors %}<div class="text-danger small">{{ form.data.errors }}</div>{% endif %}
+              </div>
+
+              <!-- ✅ Anexos -->
+              <div class="col-12">
+                <label class="form-label">Comprovantes (PDF/Imagens)</label>
+
+                <div id="anexos-wrapper">
+                  {{ form.anexos }}  {# primeiro input (já aceita múltiplos) #}
+                </div>
+
+                <button type="button" id="add-anexo" class="btn btn-link p-0 mt-1">+ Adicionar outro arquivo</button>
+
+                <div class="form-text">
+                  Você pode selecionar vários arquivos no mesmo campo (Ctrl/Cmd ao escolher) ou clicar em “Adicionar outro arquivo”.
+                </div>
+
+                {% if form.anexos.errors %}
+                  <div class="text-danger small">{{ form.anexos.errors }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <button class="btn btn-primary mt-3" type="submit">Salvar</button>
+          </form>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const btn = document.getElementById('add-anexo');
+              const wrapper = document.getElementById('anexos-wrapper');
+              if (btn && wrapper) {
+                btn.addEventListener('click', () => {
+                  const first = wrapper.querySelector('input[type="file"]');
+                  if (!first) return;
+                  const clone = first.cloneNode(); // mesmo name="anexos"
+                  clone.value = '';
+                  // opcional: remover multiple nos clones (o primeiro já tem)
+                  clone.removeAttribute('multiple');
+                  clone.classList.add('mt-2');
+                  wrapper.appendChild(clone);
+                });
+              }
+            });
+          </script>
+          <p class="text-muted small mt-2 mb-0">* Apenas cartões do usuário selecionado aparecem na lista.</p>
+        </div>
+      </div>
+      {% else %}
+        <div class="alert alert-warning">Este usuário não possui cartões. Peça para um administrador cadastrar um.</div>
+      {% endif %}
+
+      <!-- Lista de gastos do período -->
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="mb-3">Gastos do período</h6>
+          {% if gastos %}
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Cartão</th>
+                    <th>Descrição</th>
+                    <th class="text-end">Valor (R$)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for g in gastos %}
+                    <tr>
+                      <td>{{ g.data }}</td>
+                      <td>{{ g.cartao.nome }}</td>
+                      <td>
+                        {{ g.descricao }}
+
+                        {% with anexos=g.anexos.all %}
+                          {% if anexos.count %}
+                            <div class="mt-2 d-flex flex-wrap align-items-start gap-2">
+                              {% for an in anexos %}
+                                {% if an.arquivo.name|is_image %}
+                                  <!-- Preview de imagem -->
+                                  <div class="text-center" style="width: 100px;">
+                                    <a href="{{ an.arquivo.url }}" target="_blank" rel="noopener">
+                                      <img src="{{ an.arquivo.url }}"
+                                          class="img-thumbnail"
+                                          style="width:100px;height:100px;object-fit:cover;">
+                                    </a>
+                                    {% if request.user.is_staff or request.user.id == g.usuario_id %}
+                                      <form method="post" action="{% url 'excluir_anexo_gasto' an.id %}" class="mt-1">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="periodo" value="{{ periodo }}">
+                                        <button class="btn btn-link btn-sm text-danger p-0">remover</button>
+                                      </form>
+                                    {% endif %}
+                                  </div>
+                                {% else %}
+                                  <!-- Link “badge” para arquivos não-imagem (PDF etc.) -->
+                                  <div class="d-flex align-items-center gap-1">
+                                    <a href="{{ an.arquivo.url }}" target="_blank" rel="noopener"
+                                      class="badge text-bg-secondary text-decoration-none">
+                                      Arquivo {{ forloop.counter }}
+                                    </a>
+                                    {% if request.user.is_staff or request.user.id == g.usuario_id %}
+                                      <form method="post" action="{% url 'excluir_anexo_gasto' an.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="periodo" value="{{ periodo }}">
+                                        <button class="btn btn-link btn-sm text-danger p-0">remover</button>
+                                      </form>
+                                    {% endif %}
+                                  </div>
+                                {% endif %}
+                              {% endfor %}
+                            </div>
+                          {% endif %}
+                        {% endwith %}
+                      </td>
+                      <td class="text-end">{{ g.valor|floatformat:2|intcomma }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="alert alert-info mb-0">Nenhum gasto registrado no período selecionado.</div>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="alert alert-secondary">Escolha um usuário (ou acesse logado como usuário comum) para registrar e visualizar gastos.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

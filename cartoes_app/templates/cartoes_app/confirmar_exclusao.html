@@ -1,0 +1,29 @@
+{% extends 'cartoes_app/base.html' %}
+
+{% block title %}Confirmar Exclusão{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h3 class="mb-3 text-danger">Excluir Cartão</h3>
+                <p class="lead">Você tem certeza que deseja excluir o cartão <strong>{{ cartao.nome }}</strong>?</p>
+
+                <p class="mb-4">
+                    <strong>Número:</strong> {{ cartao.numero_mascarado }}<br>
+                    <strong>Bandeira:</strong> {{ cartao.get_bandeira_display }}<br>
+                    <strong>Limite:</strong> R$ {{ cartao.limite }}<br>
+                    <strong>Vencimento:</strong> {{ cartao.vencimento_formatado }}
+                </p>
+
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger px-4">Sim, excluir</button>
+                </form>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary ms-3 px-4">Cancelar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
