@@ -74,15 +74,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'creditmanager.wsgi.application'
 
 # ===================== Banco de Dados =====================
-# Local (default): sqlite
-# Produção: use DATABASE_URL (Postgres)
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,           # pooling
-        ssl_require=not DEBUG       # exige SSL em produção
-    )
-}
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+if DATABASE_URL:
+    # Produção com Postgres (ou outro) via DATABASE_URL
+    DATABASES = {
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=not DEBUG
+        )
+    }
+else:
+    # Sem DATABASE_URL -> usa SQLite local (sem sslmode)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ===================== Validação de senha =====================
 AUTH_PASSWORD_VALIDATORS = [
