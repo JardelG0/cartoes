@@ -10,10 +10,6 @@
 {# ===== TOPO DO DASHBOARD (reestruturado) ===== #}
 <div class="row mb-3">
   <div class="col-12 d-flex justify-content-between align-items-center">
-    <h2 class="mb-0">
-      {% if request.user.is_staff %}Todos os Cartões{% else %}Meus Cartões{% endif %}
-    </h2>
-
     {% if not request.user.is_staff %}
       <a href="{% url 'gastos' %}" class="btn btn-outline-secondary btn-sm">
         ← Voltar para Gastos

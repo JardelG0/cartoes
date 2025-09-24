@@ -14,10 +14,8 @@
       </h4>
     {% else %}
       <h2 class="mb-0">Gastos</h2>
-      <div class="d-flex gap-2">
-        <a href="{% url 'usuarios' %}" class="btn btn-outline-secondary btn-sm">Usuários</a>
-        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Dashboard</a>
-      </div>
+      <!-- ✅ Apenas botão voltar -->
+      <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
     {% endif %}
   </div>
 
@@ -26,8 +24,22 @@
     <!-- Painel do usuário -->
     <div class="card shadow-sm mb-3">
       <div class="card-body">
+
+        <!-- ✅ ALTERAÇÃO: seletor de usuário para ADMIN -->
         <form method="get" class="row g-2 align-items-end">
-          {% if usuarios and user_alvo %}
+          {% if usuarios %}
+            <div class="col-auto">
+              <label for="usuario" class="form-label mb-0 small">Usuário</label>
+              <select id="usuario" name="usuario" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for u in usuarios %}
+                  <option value="{{ u.id }}" {% if user_alvo and user_alvo.id == u.id %}selected{% endif %}>
+                    {{ u.username }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          {% elif user_alvo %}
+            <!-- (fluxo de usuário comum logado) -->
             <input type="hidden" name="usuario" value="{{ user_alvo.id }}">
           {% endif %}
 
@@ -56,6 +68,8 @@
           </div>
           {% endif %}
         </form>
+        <!-- ✅ FIM DA ALTERAÇÃO -->
+
       </div>
     </div>
 
@@ -158,12 +172,12 @@
                 {% if form.data.errors %}<div class="text-danger small">{{ form.data.errors }}</div>{% endif %}
               </div>
 
-              <!-- ✅ Anexos -->
+              <!-- Anexos -->
               <div class="col-12">
                 <label class="form-label">Comprovantes (PDF/Imagens)</label>
 
                 <div id="anexos-wrapper">
-                  {{ form.anexos }}  {# primeiro input (já aceita múltiplos) #}
+                  {{ form.anexos }}
                 </div>
 
                 <button type="button" id="add-anexo" class="btn btn-link p-0 mt-1">+ Adicionar outro arquivo</button>
@@ -191,8 +205,7 @@
                   if (!first) return;
                   const clone = first.cloneNode(); // mesmo name="anexos"
                   clone.value = '';
-                  // opcional: remover multiple nos clones (o primeiro já tem)
-                  clone.removeAttribute('multiple');
+                  clone.removeAttribute('multiple'); // o primeiro já tem multiple
                   clone.classList.add('mt-2');
                   wrapper.appendChild(clone);
                 });
@@ -238,8 +251,8 @@
                                   <div class="text-center" style="width: 100px;">
                                     <a href="{{ an.arquivo.url }}" target="_blank" rel="noopener">
                                       <img src="{{ an.arquivo.url }}"
-                                          class="img-thumbnail"
-                                          style="width:100px;height:100px;object-fit:cover;">
+                                           class="img-thumbnail"
+                                           style="width:100px;height:100px;object-fit:cover;">
                                     </a>
                                     {% if request.user.is_staff or request.user.id == g.usuario_id %}
                                       <form method="post" action="{% url 'excluir_anexo_gasto' an.id %}" class="mt-1">
@@ -253,7 +266,7 @@
                                   <!-- Link “badge” para arquivos não-imagem (PDF etc.) -->
                                   <div class="d-flex align-items-center gap-1">
                                     <a href="{{ an.arquivo.url }}" target="_blank" rel="noopener"
-                                      class="badge text-bg-secondary text-decoration-none">
+                                       class="badge text-bg-secondary text-decoration-none">
                                       Arquivo {{ forloop.counter }}
                                     </a>
                                     {% if request.user.is_staff or request.user.id == g.usuario_id %}

@@ -1,6 +1,9 @@
 from pathlib import Path
 import dj_database_url
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # carrega variáveis do .env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -10,9 +13,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # ===================== Básico =====================
 # Em produção: defina SECRET_KEY no ambiente
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-inseguro-altere')
+SECRET_KEY = os.getenv('SECRET_KEY', 'dev-unsafe-change-me')
 
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # Ex.: "seuapp.onrender.com,www.seudominio.com"
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
@@ -74,23 +77,50 @@ TEMPLATES = [
 WSGI_APPLICATION = 'creditmanager.wsgi.application'
 
 # ===================== Banco de Dados =====================
-DATABASE_URL = os.getenv('DATABASE_URL')
+# Lógica robusta para DATABASE_URL (mantida)
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
 
 if DATABASE_URL:
-    # Produção com Postgres (ou outro) via DATABASE_URL
-    DATABASES = {
-        'default': dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            ssl_require=not DEBUG
-        )
-    }
+    try:
+        db_config = dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG)
+    except Exception as e:
+        import sys
+        print("ERRO ao parsear DATABASE_URL:", e, file=sys.stderr)
+        db_config = None
+
+    if db_config:
+        engine = db_config.get('ENGINE', '')
+        if engine and 'sqlite' in engine:
+            options = db_config.get('OPTIONS')
+            if isinstance(options, dict):
+                if 'sslmode' in options:
+                    options.pop('sslmode', None)
+                for key in ('sslrootcert', 'sslcert', 'sslkey'):
+                    options.pop(key, None)
+                if not options:
+                    db_config.pop('OPTIONS', None)
+        if 'conn_max_age' not in db_config and 'CONN_MAX_AGE' in db_config:
+            db_config['conn_max_age'] = db_config.pop('CONN_MAX_AGE')
+
+        DATABASES = {'default': db_config}
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'creditmanager',
+                'USER': 'postgres',
+                'PASSWORD': 'postgres',
+                'HOST': 'localhost',
+            }
+        }
 else:
-    # Sem DATABASE_URL -> usa SQLite local (sem sslmode)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'creditmanager',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': 'localhost',
         }
     }
 
@@ -111,14 +141,10 @@ USE_THOUSAND_SEPARATOR = True
 THOUSAND_SEPARATOR = '.'
 DECIMAL_SEPARATOR = ','
 
-# (Django 5 ignora USE_L10N; pode remover se quiser)
-# USE_L10N = True
-
 # ===================== Staticfiles =====================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Django 5: configurar via STORAGES (substitui STATICFILES_STORAGE)
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
@@ -127,20 +153,63 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
-# Se você tiver uma pasta 'static' na raiz com arquivos próprios:
-# STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# ===================== Segurança (produção) =====================
+# ===================== Segurança / SSL (ajustada) =====================
+# Explicação rápida:
+#  - Em DEBUG (desenvolvimento) NÃO forçamos HTTPS nem cookies secure.
+#  - Em produção (DEBUG=False) ativamos os controles apenas se as env vars solicitarem.
+#
+# Variáveis de ambiente relacionadas:
+#  - SECURE_SSL_REDIRECT (True/False)   -> se True e DEBUG=False, força redirecionamento HTTP->HTTPS
+#  - FORCE_SESSION_COOKIE_SECURE (True/False) -> se True e DEBUG=False, seta SESSION_COOKIE_SECURE=True
+#  - FORCE_CSRF_COOKIE_SECURE (True/False) -> se True e DEBUG=False, seta CSRF_COOKIE_SECURE=True
+#  - CSRF_TRUSTED_ORIGINS -> lista separada por vírgula com domínio(s) https://...
+#  - USE_X_FORWARDED_HOST (True/False) -> se usando proxy, pode ser útil
+
+# Por padrão, em produção NÃO ativamos SSL redirect a menos que env diga.
+SECURE_SSL_REDIRECT = False
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() == 'true'
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
 
-    # Origem CSRF precisa do esquema (https)
-    # Ex.: "https://seuapp.onrender.com,https://www.seudominio.com"
-    CSRF_TRUSTED_ORIGINS = [
-        o.strip() for o in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()
-    ]
+# Cookies seguros (setados apenas em produção e se explicitamente solicitado)
+if not DEBUG:
+    if os.getenv('FORCE_SESSION_COOKIE_SECURE', 'False').lower() == 'true':
+        SESSION_COOKIE_SECURE = True
+    else:
+        SESSION_COOKIE_SECURE = False
+
+    if os.getenv('FORCE_CSRF_COOKIE_SECURE', 'False').lower() == 'true':
+        CSRF_COOKIE_SECURE = True
+    else:
+        CSRF_COOKIE_SECURE = False
+else:
+    # Em dev, garantir que cookies não estejam marcados como 'secure' para evitar problemas com HTTP local
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+# Se estiver atrás de um proxy/terminador TLS (nginx, heroku, render), use:
+# Ex.: SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# (Ative apenas em produção / quando seu proxy realmente envia esse header.)
+SECURE_PROXY_SSL_HEADER = None
+if os.getenv('USE_X_FORWARDED_PROTO', 'False').lower() == 'true':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# HSTS (apenas em produção e quando SECURE_SSL_REDIRECT=True)
+# Se ativar, configure também SECURE_HSTS_SECONDS via env (ex: 31536000)
+if not DEBUG and SECURE_SSL_REDIRECT:
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '0'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False').lower() == 'true'
+    SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'False').lower() == 'true'
+else:
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+
+# CSRF trusted origins (apenas em produção — inclua esquema "https://")
+CSRF_TRUSTED_ORIGINS = []
+if not DEBUG:
+    ct = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in ct.split(',') if o.strip()]
 
 # ===================== Logging simples =====================
 LOGGING = {

@@ -75,7 +75,7 @@ class Gasto(models.Model):
 
 class GastoAnexo(models.Model):
     gasto = models.ForeignKey('Gasto', on_delete=models.CASCADE, related_name='anexos')
-    arquivo = models.FileField(upload_to='gastos/%Y/%m/')
+    arquivo = models.FileField(upload_to='gastos/')
     nome_original = models.CharField(max_length=255, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

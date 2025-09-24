@@ -3,11 +3,17 @@
 {% block title %}Registrar Usuário (Admin){% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-lg-5">
-    <div class="card shadow-sm mb-4">
+<div class="row justify-content-center mb-3">
+  <div class="col-lg-6 d-flex justify-content-between align-items-center">
+    <h4 class="mb-0">Registrar</h4>
+    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">← Voltar</a>
+  </div>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
       <div class="card-body">
-        <h4 class="mb-3">Registrar Usuário Comum</h4>
         <form method="post">
           {% csrf_token %}
           {% for field in form %}
@@ -19,40 +25,8 @@
               {% endif %}
             </div>
           {% endfor %}
-          <button class="btn btn-success">Registrar</button>
+          <button class="btn btn-success w-100">Registrar</button>
         </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-7">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h4 class="mb-3">Usuários Comuns</h4>
-        {% if usuarios %}
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Username</th>
-                  <th>Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for u in usuarios %}
-                  <tr>
-                    <td>{{ u.id }}</td>
-                    <td>{{ u.username }}</td>
-                    <td>{{ u.email }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        {% else %}
-          <div class="alert alert-info">Nenhum usuário comum cadastrado.</div>
-        {% endif %}
       </div>
     </div>
   </div>

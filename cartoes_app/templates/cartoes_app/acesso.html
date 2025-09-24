@@ -4,55 +4,50 @@
 {% block title %}Acesso{% endblock %}
 
 {% block content %}
-<div class="row">
-  <div class="col-12 d-flex justify-content-between align-items-center mb-4">
-    <h2>Escolha seu acesso</h2>
-    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Ir para Dashboard</a>
-  </div>
-
-  <!-- Coluna: Administrador -->
-  <div class="col-lg-4">
-    <div class="card shadow-sm mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Administrador</h5>
-        <p class="text-muted">Acesso ao painel com controle de cartões, usuários e relatórios.</p>
-        <a class="btn btn-primary"
-           href="{% url 'login' %}?next={% url 'dashboard' %}">
-          Entrar como Admin
-        </a>
-        <a class="btn btn-outline-dark ms-2" href="/admin/">Django Admin</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Coluna: Usuários comuns -->
+<div class="row justify-content-center">
   <div class="col-lg-8">
+    <!-- Topo: título + botão único de Login -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Usuários do Sistema</h4>
+      <a class="btn btn-primary btn-sm" href="{% url 'login' %}">Login</a>
+    </div>
+
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="card-title mb-3">Usuários</h5>
-
-        {% if usuarios_comuns %}
-          <div class="row g-2">
-            {% for u in usuarios_comuns %}
-              <div class="col-12 col-sm-6 col-md-4">
-                <a
-                  class="btn btn-outline-primary w-100"
-                  href="{% url 'login' %}?next=/gastos/?usuario={{ u.id }}"
-                  title="Entrar e ir para os gastos de {{ u.username }}"
-                >
-                  👤 {{ u.username }}
-                </a>
-              </div>
-            {% endfor %}
-          </div>
-          <p class="text-muted small mt-3 mb-0">
-            * Você fará login e será levado para a tela de Gastos desse usuário.
-          </p>
-        {% else %}
-          <div class="alert alert-info mb-0">Nenhum usuário comum cadastrado.</div>
-        {% endif %}
+        {% comment %}
+          Preferência: se a view enviar "usuarios" (todos), usamos.
+          Caso contrário, caímos no "usuarios_comuns" já existente.
+        {% endcomment %}
+        {% with lista=usuarios|default:usuarios_comuns %}
+          {% if lista %}
+            <ul class="list-group list-group-flush">
+              {% for u in lista %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>
+                    {{ u.username }}
+                    {% if u.email %}
+                      <span class="text-muted small">— {{ u.email }}</span>
+                    {% endif %}
+                  </span>
+                  {% if u.is_staff %}
+                    <span class="badge bg-dark">Admin</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Usuário</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <div class="alert alert-info mb-0">Nenhum usuário cadastrado ainda.</div>
+          {% endif %}
+        {% endwith %}
       </div>
     </div>
+
+    <p class="text-muted small mt-2 mb-0">
+      Após autenticar: <strong>admins</strong> vão para o <em>Dashboard</em> e
+      <strong>usuários</strong> para a página de <em>Gastos</em>.
+    </p>
   </div>
 </div>
 {% endblock %}

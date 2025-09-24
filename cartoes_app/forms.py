@@ -2,31 +2,94 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import CartaoCredito, Gasto
 
+
 class CartaoCreditoForm(forms.ModelForm):
-    """Form padrão (sem o campo usuário). Útil para edições quando não se troca o dono."""
+    """
+    Form padrão (sem o campo usuário). Útil para edições quando não se troca o dono.
+    Corrige formatação do ano (labels como string) e aplica widgets Bootstrap.
+    """
+    mes_vencimento = forms.ChoiceField(
+        choices=CartaoCredito.MESES,
+        label='Mês de vencimento',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ano_vencimento = forms.ChoiceField(
+        choices=[],
+        label='Ano de vencimento',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = CartaoCredito
         fields = ['nome', 'numero', 'mes_vencimento', 'ano_vencimento', 'limite', 'bandeira']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'numero': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': 16,
+                'inputmode': 'numeric',
+                'pattern': r'\d{13,16}',
+                'placeholder': 'Somente números',
+            }),
+            'limite': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'bandeira': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ano_atual = timezone.now().year
+        # ✅ labels como string para evitar 2.025 etc.
+        self.fields['ano_vencimento'].choices = [(y, str(y)) for y in range(ano_atual, ano_atual + 15)]
+
 
 class CartaoCreditoAdminForm(forms.ModelForm):
-    """Form para ADMIN: inclui o campo 'usuario' para vincular o cartão a um usuário comum."""
+    """
+    Form para ADMIN: inclui o campo 'usuario' para vincular o cartão a um usuário comum.
+    Corrige formatação do ano (labels como string) e aplica widgets Bootstrap.
+    """
     usuario = forms.ModelChoiceField(
         queryset=User.objects.none(),
         label='Usuário',
         help_text='Selecione o dono deste cartão',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    mes_vencimento = forms.ChoiceField(
+        choices=CartaoCredito.MESES,
+        label='Mês de vencimento',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    ano_vencimento = forms.ChoiceField(
+        choices=[],
+        label='Ano de vencimento',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
 
     class Meta:
         model = CartaoCredito
         fields = ['usuario', 'nome', 'numero', 'mes_vencimento', 'ano_vencimento', 'limite', 'bandeira']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'numero': forms.TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': 16,
+                'inputmode': 'numeric',
+                'pattern': r'\d{13,16}',
+                'placeholder': 'Somente números',
+            }),
+            'limite': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'bandeira': forms.Select(attrs={'class': 'form-select'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Apenas usuários comuns (não staff) como opções
         self.fields['usuario'].queryset = User.objects.filter(is_staff=False).order_by('username')
+        ano_atual = timezone.now().year
+        # ✅ labels como string para evitar 2.025 etc.
+        self.fields['ano_vencimento'].choices = [(y, str(y)) for y in range(ano_atual, ano_atual + 15)]
+
 
 class RegistrarUsuarioComumForm(UserCreationForm):
     """Cadastro de usuário comum (is_staff=False). Regras de senha seguem settings.AUTH_PASSWORD_VALIDATORS."""
@@ -44,9 +107,11 @@ class RegistrarUsuarioComumForm(UserCreationForm):
             user.save()
         return user
 
+
 # ✅ Widget para múltiplos arquivos
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
+
 
 class GastoForm(forms.ModelForm):
     cartao = forms.ModelChoiceField(
