@@ -1,4 +1,23 @@
-DEBUG=True
-SECRET_KEY=dev-unsafe-change-me
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/creditmanager
+# ================= Django ==================
+DEBUG=False
+SECRET_KEY=em#m#n!be81=unwo3%m#yx^cx18tis6cn6uekzrk*)5wrm$&5u  # Substitua por uma chave segura gerada
+
+# ================= Hosts permitidos ==================
+ALLOWED_HOSTS=seudominio.com,www.seudominio.com,127.0.0.1,localhost
+
+# ================= Banco de dados ==================
+DATABASE_URL=postgres://postgres:senha_forte@localhost:5432/creditmanager
+
+# ================= Segurança SSL ==================
+SECURE_SSL_REDIRECT=True
+FORCE_SESSION_COOKIE_SECURE=True
+FORCE_CSRF_COOKIE_SECURE=True
+USE_X_FORWARDED_PROTO=True
+
+# ================= CSRF Trusted Origins ==================
+CSRF_TRUSTED_ORIGINS=https://seudominio.com,https://www.seudominio.com
+
+# ================= HSTS (opcional, melhora segurança HTTPS) ==================
+SECURE_HSTS_SECONDS=31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+SECURE_HSTS_PRELOAD=True

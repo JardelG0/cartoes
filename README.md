@@ -18,6 +18,16 @@ Acessar o servidor com SSH
 ssh root@72.60.143.217
 '''
 
+Digie yes quando for solicitado
+'''
+Are you sure you want to continue conecting (yes/no/[fingerprint])? yes
+'''
+
+Para não informar o domínio e sair da configuração.
+'''
+CTRL + C
+'''
+
 Usar o Terminal conectado ao servidor para listar os arquivos.
 '''
 cd /usr/local/lsws/Example/html/demo
@@ -31,6 +41,41 @@ ls -l
 Remover os arquivos do servidor
 '''
 rm -rf {*,.*}
+'''
+
+Clonar os arquivos do repositório do github.
+'''
+git clone git@github.com:JardelG0/cartoes.git .
+'''
+
+Verificar o python 3 instalado.
+'''
+python3 --version
+'''
+
+Atualizar a lista de pacotes
+'''
+sudo apt update
+'''
+
+Instalar o pacote para instalar o ambiente virtual
+'''
+sudo apt install python3-venv -y
+'''
+
+Criar o ambiente virtual
+'''
+python3 -m venv venv
+'''
+
+Ativar o ambiente virtual no linux
+'''
+source venv/bin/activate
+'''
+
+Instalar as dependências.
+'''
+pip install -r requirements.txt
 '''
 
 No GitHub, vá para settings (configurações) do seu repositório ou da sua conta, em seguida, vá para SSH and GPG keys e clique em New SSH key.
