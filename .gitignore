@@ -21,3 +21,12 @@ media/
 # Credenciais/variáveis (se usar)
 *.env
 .env.*
+venv/
+.env
+*.pyc
+__pycache__/
+staticfiles/
+media/
+stderr.log
+runtime.txt
+runtime.lock

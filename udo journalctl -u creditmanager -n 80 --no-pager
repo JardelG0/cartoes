@@ -1,0 +1,23 @@
+[0;1;32m●[0m creditmanager.service - Gunicorn service for Django project CreditManager
+     Loaded: loaded (]8;;file://srv1027020/etc/systemd/system/creditmanager.service/etc/systemd/system/creditmanager.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Sat 2025-09-27 03:10:24 UTC; 1min 48s ago
+   Main PID: 21023 (gunicorn)
+      Tasks: 4 (limit: 4654)
+     Memory: 92.1M (peak: 92.4M)
+        CPU: 580ms
+     CGroup: /system.slice/creditmanager.service
+             ├─[0;38;5;245m21023 /usr/local/lsws/Example/html/demo/venv/bin/python3 /usr/local/lsws/Example/html/demo/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn/creditmanager.sock creditmanager.wsgi:application[0m
+             ├─[0;38;5;245m21024 /usr/local/lsws/Example/html/demo/venv/bin/python3 /usr/local/lsws/Example/html/demo/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn/creditmanager.sock creditmanager.wsgi:application[0m
+             ├─[0;38;5;245m21025 /usr/local/lsws/Example/html/demo/venv/bin/python3 /usr/local/lsws/Example/html/demo/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn/creditmanager.sock creditmanager.wsgi:application[0m
+             └─[0;38;5;245m21026 /usr/local/lsws/Example/html/demo/venv/bin/python3 /usr/local/lsws/Example/html/demo/venv/bin/gunicorn --workers 3 --bind unix:/run/gunicorn/creditmanager.sock creditmanager.wsgi:application[0m
+
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: python-dotenv could not parse statement starting at line 10
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: python-dotenv could not parse statement starting at line 13
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: python-dotenv could not parse statement starting at line 14
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: python-dotenv could not parse statement starting at line 17
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: python-dotenv could not parse statement starting at line 18
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: WARNING:root:No DATABASE_URL environment variable set, and so no databases setup
+Sep 27 03:10:24 srv1027020 gunicorn[21025]: /usr/local/lsws/Example/html/demo/venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /usr/local/lsws/Example/html/demo/staticfiles/
+Sep 27 03:10:24 srv1027020 gunicorn[21025]:   mw_instance = middleware(adapted_handler)
+Sep 27 03:10:24 srv1027020 gunicorn[21026]: /usr/local/lsws/Example/html/demo/venv/lib/python3.12/site-packages/django/core/handlers/base.py:61: UserWarning: No directory at: /usr/local/lsws/Example/html/demo/staticfiles/
+Sep 27 03:10:24 srv1027020 gunicorn[21026]:   mw_instance = middleware(adapted_handler)
