@@ -6,43 +6,43 @@ from django.utils import timezone
 from .models import CartaoCredito, Gasto
 
 
-class CartaoCreditoForm(forms.ModelForm):
-    """
-    Form padrão (sem o campo usuário). Útil para edições quando não se troca o dono.
-    Corrige formatação do ano (labels como string) e aplica widgets Bootstrap.
-    """
-    mes_vencimento = forms.ChoiceField(
-        choices=CartaoCredito.MESES,
-        label='Mês de vencimento',
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
-    ano_vencimento = forms.ChoiceField(
-        choices=[],
-        label='Ano de vencimento',
-        widget=forms.Select(attrs={'class': 'form-select'})
-    )
+# class CartaoCreditoForm(forms.ModelForm):
+#     """
+#     Form padrão (sem o campo usuário). Útil para edições quando não se troca o dono.
+#     Corrige formatação do ano (labels como string) e aplica widgets Bootstrap.
+#     """
+#     mes_vencimento = forms.ChoiceField(
+#         choices=CartaoCredito.MESES,
+#         label='Mês de vencimento',
+#         widget=forms.Select(attrs={'class': 'form-select'})
+#     )
+#     ano_vencimento = forms.ChoiceField(
+#         choices=[],
+#         label='Ano de vencimento',
+#         widget=forms.Select(attrs={'class': 'form-select'})
+#     )
 
-    class Meta:
-        model = CartaoCredito
-        fields = ['nome', 'numero', 'mes_vencimento', 'ano_vencimento', 'limite', 'bandeira']
-        widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control'}),
-            'numero': forms.TextInput(attrs={
-                'class': 'form-control',
-                'maxlength': 16,
-                'inputmode': 'numeric',
-                'pattern': r'\d{13,16}',
-                'placeholder': 'Somente números',
-            }),
-            'limite': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'bandeira': forms.Select(attrs={'class': 'form-select'}),
-        }
+#     class Meta:
+#         model = CartaoCredito
+#         fields = ['nome', 'numero', 'mes_vencimento', 'ano_vencimento', 'limite', 'bandeira']
+#         widgets = {
+#             'nome': forms.TextInput(attrs={'class': 'form-control'}),
+#             'numero': forms.TextInput(attrs={
+#                 'class': 'form-control',
+#                 'maxlength': 16,
+#                 'inputmode': 'numeric',
+#                 'pattern': r'\d{13,16}',
+#                 'placeholder': 'Somente números',
+#             }),
+#             'limite': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+#             'bandeira': forms.Select(attrs={'class': 'form-select'}),
+#         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        ano_atual = timezone.now().year
-        # ✅ labels como string para evitar 2.025 etc.
-        self.fields['ano_vencimento'].choices = [(y, str(y)) for y in range(ano_atual, ano_atual + 15)]
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         ano_atual = timezone.now().year
+#         # ✅ labels como string para evitar 2.025 etc.
+#         self.fields['ano_vencimento'].choices = [(y, str(y)) for y in range(ano_atual, ano_atual + 15)]
 
 
 class CartaoCreditoAdminForm(forms.ModelForm):
@@ -89,6 +89,16 @@ class CartaoCreditoAdminForm(forms.ModelForm):
         ano_atual = timezone.now().year
         # ✅ labels como string para evitar 2.025 etc.
         self.fields['ano_vencimento'].choices = [(y, str(y)) for y in range(ano_atual, ano_atual + 15)]
+
+
+class RecargaSaldoForm(forms.Form):
+    valor = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        label="Valor da recarga",
+        min_value=0.01,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "Digite o valor"})
+    )
 
 
 class RegistrarUsuarioComumForm(UserCreationForm):

@@ -30,7 +30,7 @@ CTRL + C
 
 Usar o Terminal conectado ao servidor para listar os arquivos.
 '''
-cd /usr/local/lsws/Example/html/demo
+    cd /usr/local/lsws/Example/html/demo
 '''
 
 Listar os arquivos do servidor
