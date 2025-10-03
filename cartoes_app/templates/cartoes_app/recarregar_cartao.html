@@ -1,0 +1,27 @@
+{% extends 'cartoes_app/base.html' %}
+
+{% block title %}Recarregar Cartão{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Recarregar Saldo</h5>
+        <p><strong>Cartão:</strong> {{ cartao.nome }}</p>
+        <p><strong>Limite:</strong> R$ {{ cartao.limite|floatformat:2 }}</p>
+        <p><strong>Saldo atual:</strong> R$ {{ cartao.saldo_atual|floatformat:2 }}</p>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            {{ form.valor.label_tag }}
+            {{ form.valor }}
+          </div>
+          <button type="submit" class="btn btn-success w-100">Recarregar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

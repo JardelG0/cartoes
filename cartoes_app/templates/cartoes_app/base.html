@@ -6,6 +6,9 @@
     <meta charset="UTF-8">
     <title>{% block title %}Cartões{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Cor da barra no mobile -->
+    <meta name="theme-color" content="#0d6efd">
+
     <!-- Favicon -->
     <link rel="icon" href="{% static 'cartoes_app/img/favicon.ico' %}" type="image/x-icon">
     <!-- Bootstrap -->
@@ -21,7 +24,7 @@
                href="{% if request.user.is_authenticated %}
                         {% if request.user.is_staff %}{% url 'dashboard' %}{% else %}{% url 'gastos' %}{% endif %}
                      {% else %}
-                        {% url 'acesso' %}
+                        {% url 'login' %}
                      {% endif %}">
                 💳 Gerenciador de Cartão
             </a>
@@ -39,10 +42,12 @@
                     {% if request.user.is_authenticated %}
                         <span class="navbar-text text-white me-2">👤 {{ request.user.username }}</span>
 
-                        <!-- ✅ Logout via POST (Django 5) -->
+                        <!-- ✅ Logout via POST com botão mais elegante -->
                         <form method="post" action="{% url 'logout' %}" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                            <button type="submit" class="btn btn-light btn-sm d-flex align-items-center gap-1">
+                                🚪 Sair
+                            </button>
                         </form>
 
                     {% else %}

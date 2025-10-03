@@ -1,12 +1,11 @@
 from pathlib import Path
-import dj_database_url
 import os
+import dj_database_url
 from dotenv import load_dotenv
-from pathlib import Path
 
-
+# BASE_DIR e .env
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env")  # carrega variáveis do .env
 
 # ===================== Media (uploads) =====================
 MEDIA_URL = '/media/'
@@ -78,11 +77,23 @@ WSGI_APPLICATION = 'creditmanager.wsgi.application'
 # ===================== Banco de Dados =====================
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL')
-    )
-}
+if DATABASE_URL:
+    # usa a URL do DATABASE_URL (ex: postgres://user:pass@host:port/dbname)
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
+    }
+else:
+    # fallback para configuração por variáveis individuais (ou localhost)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'creditmanager'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 # ===================== Validação de senha =====================
 AUTH_PASSWORD_VALIDATORS = [

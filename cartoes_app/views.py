@@ -12,24 +12,44 @@ from django.http import HttpResponseForbidden
 from datetime import date, timedelta
 from calendar import monthrange
 from decimal import Decimal
-
 from .models import CartaoCredito, Gasto, GastoAnexo
-from .forms import CartaoCreditoForm, CartaoCreditoAdminForm, RegistrarUsuarioComumForm, GastoForm
+from .forms import CartaoCreditoAdminForm, RegistrarUsuarioComumForm, GastoForm, RecargaSaldoForm
 
 
-# ========== Acesso / Login ==========
-def acesso_view(request):
-    """
-    Home pública: lista todos os usuários e mostra botão único de Login.
-    Se já estiver autenticado, redireciona conforme o tipo.
-    """
-    if request.user.is_authenticated:
-        return redirect('dashboard' if request.user.is_staff else 'gastos')
+@staff_member_required
+def recarregar_cartao_view(request, cartao_id):
+    cartao = get_object_or_404(CartaoCredito, id=cartao_id)
 
-    usuarios_comuns = User.objects.filter(is_staff=False).order_by('username')
-    return render(request, 'cartoes_app/acesso.html', {
-        'usuarios_comuns': usuarios_comuns,
+    if request.method == "POST":
+        form = RecargaSaldoForm(request.POST)
+        if form.is_valid():
+            valor = form.cleaned_data["valor"]
+            cartao.saldo_atual = (cartao.saldo_atual or 0) + valor
+            cartao.save()
+            messages.success(request, f"Cartão {cartao.nome} recarregado em R$ {valor:.2f}.")
+            return redirect("dashboard")
+    else:
+        form = RecargaSaldoForm()
+
+    return render(request, "cartoes_app/recarregar_cartao.html", {
+        "form": form,
+        "cartao": cartao
     })
+
+
+# # ========== Acesso / Login ==========
+# def acesso_view(request):
+#     """
+#     Home pública: lista todos os usuários e mostra botão único de Login.
+#     Se já estiver autenticado, redireciona conforme o tipo.
+#     """
+#     if request.user.is_authenticated:
+#         return redirect('dashboard' if request.user.is_staff else 'gastos')
+
+#     usuarios_comuns = User.objects.filter(is_staff=False).order_by('username')
+#     return render(request, 'cartoes_app/acesso.html', {
+#         'usuarios_comuns': usuarios_comuns,
+#     })
 
 
 class PortalLoginView(LoginView):
@@ -49,68 +69,84 @@ class PortalLoginView(LoginView):
 # ========== Dashboard ==========
 @login_required
 def dashboard_view(request):
-    """
-    Admin vê todos os cartões e painéis; usuário comum vê apenas os seus cartões.
-    (Criação de cartão foi movida para criar_cartao_view)
-    """
     if request.user.is_staff:
-        cartoes = CartaoCredito.objects.select_related('usuario').all().order_by('usuario__username', 'nome')
+        # Admin vê todos os usuários comuns e seus cartões
+        usuarios = (
+            User.objects.filter(is_staff=False)
+            .order_by('username')
+            .prefetch_related('cartoes')  # cartoes = related_name no model CartaoCredito(usuario)
+        )
+
+        hoje = date.today()
+        periodo = request.GET.get('periodo', 'mes_atual')
+        if periodo == 'mes_atual':
+            start = date(hoje.year, hoje.month, 1)
+            end = date(hoje.year, hoje.month, monthrange(hoje.year, hoje.month)[1])
+        elif periodo == 'ult_30':
+            start = hoje - timedelta(days=30)
+            end = hoje
+        else:
+            start, end = None, None
+
+        date_filter = {}
+        if start and end:
+            date_filter = {'data__range': (start, end)}
+
+        # Calcula saldo de cada usuário
+        for u in usuarios:
+            limite_total = CartaoCredito.objects.filter(usuario=u).aggregate(total=Sum('limite'))['total'] or Decimal('0')
+            gasto_total = Gasto.objects.filter(usuario=u, **date_filter).aggregate(total=Sum('valor'))['total'] or Decimal('0')
+            u.saldo = limite_total - gasto_total
+            u.limite_total = limite_total
+            u.gasto_total = gasto_total
+
+        total_usuarios = usuarios.count()
+        total_cartoes = CartaoCredito.objects.count()
+        limite_total = CartaoCredito.objects.aggregate(total=Sum('limite'))['total'] or Decimal('0')
+
+        context = {
+            'usuarios': usuarios,
+            'total_usuarios': total_usuarios,
+            'total_cartoes': total_cartoes,
+            'limite_total': limite_total,
+            'periodo': periodo,
+            'periodo_inicio': start,
+            'periodo_fim': end,
+        }
+
     else:
+        # Usuário comum
         cartoes = CartaoCredito.objects.filter(usuario=request.user).order_by('nome')
 
-    # ------- Filtro de período para resumos (somente admin) -------
-    periodo = request.GET.get('periodo', 'mes_atual')  # mes_atual | ult_30 | todos
-    hoje = date.today()
-    if periodo == 'mes_atual':
-        start = date(hoje.year, hoje.month, 1)
-        end = date(hoje.year, hoje.month, monthrange(hoje.year, hoje.month)[1])
-    elif periodo == 'ult_30':
-        start = hoje - timedelta(days=30)
-        end = hoje
-    else:
-        start = None
-        end = None
+        hoje = date.today()
+        periodo = request.GET.get('periodo', 'mes_atual')
+        if periodo == 'mes_atual':
+            start = date(hoje.year, hoje.month, 1)
+            end = date(hoje.year, hoje.month, monthrange(hoje.year, hoje.month)[1])
+        elif periodo == 'ult_30':
+            start = hoje - timedelta(days=30)
+            end = hoje
+        else:
+            start, end = None, None
 
-    date_filter = {}
-    if start and end:
-        date_filter = {'gastos__data__range': (start, end)}
+        date_filter = {}
+        if start and end:
+            date_filter = {'data__range': (start, end)}
 
-    # ------- Números do painel admin -------
-    total_usuarios = User.objects.filter(is_staff=False).count()
-    total_cartoes = CartaoCredito.objects.count()
-    limite_total = CartaoCredito.objects.aggregate(total=Sum('limite'))['total'] or Decimal('0')
+        limite_total = cartoes.aggregate(total=Sum('limite'))['total'] or Decimal('0')
+        gasto_total = Gasto.objects.filter(usuario=request.user, **date_filter).aggregate(total=Sum('valor'))['total'] or Decimal('0')
+        saldo = limite_total - gasto_total
 
-    # ------- Resumo por usuário -------
-    usuarios_resumo = User.objects.filter(is_staff=False).annotate(
-        gasto_total=Sum('gastos__valor', filter=Q(**date_filter))
-    ).order_by('username')
+        context = {
+            'cartoes': cartoes,
+            'limite_total': limite_total,
+            'gasto_total': gasto_total,
+            'saldo': saldo,
+            'periodo': periodo,
+            'periodo_inicio': start,
+            'periodo_fim': end,
+        }
 
-    # ------- Resumo por cartão + alerta -------
-    cartoes_resumo = CartaoCredito.objects.select_related('usuario').annotate(
-        gasto_total=Sum('gastos__valor', filter=Q(**date_filter))
-    ).order_by('usuario__username', 'nome')
-
-    cartoes_alerta = []
-    for c in cartoes_resumo:
-        gasto = c.gasto_total or Decimal('0')
-        limite = c.limite or Decimal('0')
-        if gasto > limite:
-            cartoes_alerta.append(c.id)
-        c.saldo_restante = limite - gasto  # usado no template
-
-    context = {
-        'cartoes': cartoes,
-        'form': None,  # não usamos mais form aqui; criação é em criar_cartao_view
-        'total_usuarios': total_usuarios,
-        'total_cartoes': total_cartoes,
-        'limite_total': limite_total,
-        'periodo': periodo,
-        'usuarios_resumo': usuarios_resumo,
-        'cartoes_resumo': cartoes_resumo,
-        'cartoes_alerta': set(cartoes_alerta),
-        'periodo_inicio': start,
-        'periodo_fim': end,
-    }
     return render(request, 'cartoes_app/dashboard.html', context)
 
 

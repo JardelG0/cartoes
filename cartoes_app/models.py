@@ -32,6 +32,7 @@ class CartaoCredito(models.Model):
     mes_vencimento = models.IntegerField(choices=MESES)
     ano_vencimento = models.IntegerField(choices=ano_opcoes())
     limite = models.DecimalField(max_digits=10, decimal_places=2)
+    saldo_atual = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # ✅ Novo campo
     bandeira = models.CharField(max_length=20, choices=BANDEIRAS)
 
     def __str__(self):
@@ -41,7 +42,6 @@ class CartaoCredito(models.Model):
         return f'{self.mes_vencimento:02d}/{self.ano_vencimento}'
 
     def numero_mascarado(self):
-        """Retorna o número no formato **** **** **** 1234"""
         if not self.numero:
             return ''
         return f"**** **** **** {self.numero[-4:]}"
