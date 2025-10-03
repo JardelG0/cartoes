@@ -3,26 +3,29 @@ from django.conf import settings
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 from .views import (
-    acesso_view,
+    # acesso_view,
     dashboard_view,
     PortalLoginView,
     editar_cartao_view,
     confirmar_exclusao_view,
-    # registrar_view,
     registrar_usuario_view,
     usuarios_view,
     gastos_view,
     criar_cartao_view,
     excluir_anexo_gasto,
+    recarregar_cartao_view,
 )
 
 urlpatterns = [
-    path('', acesso_view, name='acesso'),
+    # # ✅ Login/Logout unificados    
+    path('', PortalLoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+
     path('dashboard/', dashboard_view, name='dashboard'),
 
-    # ✅ Login/Logout unificados
-    path('login/', PortalLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(next_page='acesso'), name='logout'),
+    # path('acesso/', acesso_view, name='acesso'),
+    path('cartoes/<int:cartao_id>/recarregar/', recarregar_cartao_view, name='recarregar_cartao'),
+
 
     # Cartões
     path('editar-cartao/<int:cartao_id>/', editar_cartao_view, name='editar_cartao'),
@@ -30,7 +33,6 @@ urlpatterns = [
     path('cartoes/novo/', criar_cartao_view, name='criar_cartao'),
 
     # Usuários
-    # path('registrar/', registrar_view, name='registrar'),  # placeholder
     path('registrar-usuario/', registrar_usuario_view, name='registrar_usuario'),  # admin-only
     path('usuarios/', usuarios_view, name='usuarios'),
 
