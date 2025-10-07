@@ -4,16 +4,19 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.db.models import Sum, Q
-from django.urls import reverse, reverse_lazy
+from django.db.models import Sum
+from django.urls import reverse
 from django.contrib.auth.views import LoginView
 from django.http import HttpResponseForbidden
-
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import subprocess
 from datetime import date, timedelta
 from calendar import monthrange
 from decimal import Decimal
 from .models import CartaoCredito, Gasto, GastoAnexo
 from .forms import CartaoCreditoAdminForm, RegistrarUsuarioComumForm, GastoForm, RecargaSaldoForm
+import subprocess
 
 
 @staff_member_required
@@ -407,3 +410,15 @@ def excluir_anexo_gasto(request, anexo_id):
         return redirect(url)
 
     return redirect('gastos')
+
+
+@csrf_exempt
+def github_deploy(request):
+    """
+    Endpoint para receber webhook do GitHub e iniciar deploy automático.
+    """
+    if request.method == "POST":
+        subprocess.Popen(["/usr/local/lsws/Example/html/demo/deploy.sh"])
+        return JsonResponse({"status": "deploy iniciado"})
+    return JsonResponse({"error": "método inválido"}, status=400)
+

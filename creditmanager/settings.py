@@ -15,10 +15,12 @@ MEDIA_ROOT = BASE_DIR / 'media'
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-unsafe-change-me')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
 ALLOWED_HOSTS_ENV = os.getenv("ALLOWED_HOSTS")
+
 if ALLOWED_HOSTS_ENV:
-    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',')]
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_ENV.split(',') if host.strip()]
+else:
+    ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1']
 
 # ===================== Apps =====================
 INSTALLED_APPS = [

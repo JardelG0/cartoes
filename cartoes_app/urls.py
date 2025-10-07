@@ -14,6 +14,7 @@ from .views import (
     criar_cartao_view,
     excluir_anexo_gasto,
     recarregar_cartao_view,
+    github_deploy,
 )
 
 urlpatterns = [
@@ -25,7 +26,6 @@ urlpatterns = [
 
     # path('acesso/', acesso_view, name='acesso'),
     path('cartoes/<int:cartao_id>/recarregar/', recarregar_cartao_view, name='recarregar_cartao'),
-
 
     # Cartões
     path('editar-cartao/<int:cartao_id>/', editar_cartao_view, name='editar_cartao'),
@@ -39,6 +39,8 @@ urlpatterns = [
     # Gastos
     path('gastos/', gastos_view, name='gastos'),
     path('gastos/anexos/<int:anexo_id>/excluir/', excluir_anexo_gasto, name='excluir_anexo_gasto'),
+
+    path('github-deploy/', github_deploy, name='github_deploy'),
 ]
 
 if settings.DEBUG:
